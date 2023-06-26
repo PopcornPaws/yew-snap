@@ -1,0 +1,12 @@
+[package]
+name = "yew-snap"
+version = "0.1.0"
+edition = "2021"
+
+
+
+[dependencies]
+js-sys = "0.3"
+wasm-bindgen = "0.2"
+web-sys = "0.3"
+yew = { version = "0.20", features = ["csr"] }
