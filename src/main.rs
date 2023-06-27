@@ -1,7 +1,7 @@
-use js_sys::{Array, Object};
-use wasm_bindgen::JsValue;
+use js_sys::{Array, Function, Object, Promise, Reflect};
+use wasm_bindgen::{JsValue, JsCast};
+use wasm_bindgen_futures::{JsFuture, spawn_local};
 use yew::prelude::*;
-
 
 pub struct Metamask {
     provider: Option<Object>,
@@ -12,9 +12,30 @@ impl Metamask {
         let window = web_sys::window().unwrap();
         self.provider = window.get("ethereum");
         if let Some(ref provider) = self.provider {
-            web_sys::console::log_1(&provider.to_string().into());
+            web_sys::console::log_1(&"connected, hehe".into());
+            self.get_accounts();
         } else {
             web_sys::console::log_1(&"failed to connect".into());
+        }
+    }
+
+    pub fn get_accounts(&self) {
+        if let Some(ref provider) = self.provider {
+            let request = Reflect::get(provider, &JsValue::from("request"))
+                .unwrap()
+                .dyn_into::<Function>()
+                .unwrap();
+
+            let payload = Object::new();
+
+            Reflect::set(&payload, &JsValue::from("method"), &JsValue::from("eth_requestAccounts")).unwrap();
+
+            let promise = Promise::from(request.call1(&JsValue::null(), &payload).unwrap());
+
+            spawn_local(async move {
+                let accounts = JsFuture::from(promise).await.unwrap();
+                web_sys::console::log_1(&accounts);
+            });
         }
     }
 }
