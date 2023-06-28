@@ -1,6 +1,6 @@
 use js_sys::{Array, Function, Object, Promise, Reflect};
-use wasm_bindgen::{JsValue, JsCast};
-use wasm_bindgen_futures::{JsFuture, spawn_local};
+use wasm_bindgen::{JsCast, JsValue};
+use wasm_bindgen_futures::{spawn_local, JsFuture};
 use yew::prelude::*;
 
 pub struct Metamask {
@@ -28,20 +28,36 @@ impl Metamask {
 
             let payload = Object::new();
 
-            Reflect::set(&payload, &JsValue::from("method"), &JsValue::from("eth_requestAccounts")).unwrap();
+            Reflect::set(
+                &payload,
+                &JsValue::from("method"),
+                &JsValue::from("eth_requestAccounts"),
+            )
+            .unwrap();
 
             let promise = Promise::from(request.call1(&JsValue::null(), &payload).unwrap());
 
             spawn_local(async move {
                 let accounts = JsFuture::from(promise).await.unwrap();
-                web_sys::console::log_1(&accounts);
+                web_sys::console::log_1(&"keys".into());
+                web_sys::console::log_1(&Reflect::own_keys(&accounts).unwrap());
             });
+        }
+    }
+
+    pub fn callback_msg(&self) -> (Msg, String) {
+        if self.provider.is_some() {
+            (Msg::Sign, "Sign message".to_string())
+        } else {
+            (Msg::Connect, "Connect Metamask".to_string())
         }
     }
 }
 
+#[derive(Clone, Copy)]
 pub enum Msg {
     Connect,
+    Sign(String),
 }
 
 impl Component for Metamask {
@@ -58,18 +74,17 @@ impl Component for Metamask {
                 self.connect();
                 true
             }
+            Msg::Sign(_) => {
+                todo!()
+            }
         }
     }
 
     fn view(&self, ctx: &Context<Self>) -> Html {
-        let button_msg = if self.provider.is_some() {
-            "Connected"
-        } else {
-            "Connect Metamask"
-        };
+        let (msg, button_msg) = self.callback_msg();
         html! {
             <div>
-                <button class="button" onclick={ctx.link().callback(|_| Msg::Connect)}>
+                <button class="button" onclick={ctx.link().callback(move |_| msg)}>
                     { button_msg }
                 </button>
             </div>
